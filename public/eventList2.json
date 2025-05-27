@@ -1,5 +1,11 @@
-[
-  { "label": "Alpha" },
-  { "label": "Beta" },
-  { "label": "Gamma" }
-]
+{
+  "fixed": [
+    { "label": "Alpha" },
+    { "label": "Beta" }
+  ],
+  "events": [
+    { "label": "Alpha" },
+    { "label": "Beta" },
+    { "label": "Gamma" }
+  ]
+}

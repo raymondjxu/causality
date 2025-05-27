@@ -29,13 +29,21 @@ function EventListSelector({ manifest, onSelect }) {
   );
 }
 
+  // Types for event objects
+  /**
+   * @typedef {{ label: string, [key: string]: any }} EventObj
+   */
+
 function App() {
   // Manifest of available event lists
   const [eventListManifest, setEventListManifest] = React.useState(null);
   // The selected event list filename (from manifest)
   const [selectedEventList, setSelectedEventList] = React.useState(null);
   // State for the ordered list of events, fetched from a remote JSON file
-  const [orderedEventList, setOrderedEventList] = React.useState([]);
+  /** @type {[EventObj[], Function]} */
+  const [orderedEventList, setOrderedEventList] = React.useState(/** @type {EventObj[]} */([]));
+  /** @type {[EventObj[], Function]} */
+  const [fixedEvents, setFixedEvents] = useState(/** @type {EventObj[]} */([]));
 
   // Fetch the manifest on mount
   React.useEffect(() => {
@@ -44,34 +52,41 @@ function App() {
       .then(data => setEventListManifest(data));
   }, []);
 
-  // When a list is selected, fetch its events
+  // When a list is selected, fetch its events and fixed events
   React.useEffect(() => {
     if (selectedEventList) {
       fetch(process.env.PUBLIC_URL + '/' + selectedEventList.filename)
         .then(res => res.json())
-        .then(data => setOrderedEventList(data));
+        .then(data => {
+          if (Array.isArray(data)) {
+            // Backward compatibility: treat as events only
+            setOrderedEventList(data);
+            setFixedEvents([]);
+          } else {
+            setOrderedEventList(data.events || []);
+            setFixedEvents(data.fixed || []);
+          }
+        });
     }
   }, [selectedEventList]);
 
 
-  // Always call hooks at the top level
-  const [fixedEvents, setFixedEvents] = useState([
-    { label: 'Event 1'},
-    { label: 'Event 2'},
-  ]);
+  // Use a generic ref, compatible with null for initial value
+  /** @type {React.RefObject<HTMLDivElement>} */
   const timelineRef = useRef(null);
   const [baseY, setBaseY] = useState(0);
   // Only declare draggable state and ref once
   const [draggablePosition, setDraggablePosition] = useState({ x: 0, y: 0 });
+  /** @type {React.RefObject<HTMLDivElement>} */
   const draggableRef = useRef(null);
 
     const eventSpacing = 70; // Adjust spacing as needed
 
   React.useEffect(() => {
-    if (timelineRef.current) {
+    if (timelineRef.current && timelineRef.current.offsetHeight) {
       setBaseY(timelineRef.current.offsetHeight / 2 - eventSpacing * (fixedEvents.length) / 2);
     }
-  }, []);
+  }, [fixedEvents.length]);
 
   // Early return for selector, but after all hooks
   if (eventListManifest && !selectedEventList) {
@@ -102,7 +117,12 @@ function App() {
 
   // calculate the index of the draggable event based on its y position
   const getFullTimelineIncludingProspectiveEvent = () => {
-    if(!!timelineRef.current && (draggablePosition.x - (timelineRef.current.offsetLeft + timelineRef.current.width)/2) > 20) {
+    if (
+      timelineRef.current &&
+      typeof timelineRef.current.offsetLeft === 'number' &&
+      typeof timelineRef.current.offsetWidth === 'number' &&
+      (draggablePosition.x - (timelineRef.current.offsetLeft + timelineRef.current.offsetWidth / 2)) > 20
+    ) {
       return fixedEvents;
     }
 
@@ -147,16 +167,17 @@ function App() {
     const timelineLabels = fullTimeline.map(ev => ev.label);
     const orderedLabels = orderedEventList.map(ev => ev.label);
     let isCorrectOrder = true;
-    let orderedIdx = 0;
     for (let i = 0; i < timelineLabels.length; i++) {
-      if (timelineLabels[i] !== orderedLabels[orderedIdx]) {
+      if (timelineLabels[i] !== orderedLabels[i]) {
         isCorrectOrder = false;
         break;
       }
-      orderedIdx++;
     }
     if (!isCorrectOrder) {
+      // Reject placement and do not update timeline
       alert('The new event was placed in an incorrect order!');
+      setDraggablePosition({ x: 0, y: 0 });
+      return;
     }
 
     setFixedEvents(fullTimeline);

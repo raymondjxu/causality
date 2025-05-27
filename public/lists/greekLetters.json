@@ -1,0 +1,31 @@
+{
+  "fixed": [
+    { "label": "Alpha" }
+  ],
+  "events": [
+    { "label": "Alpha" },
+    { "label": "Beta" },
+    { "label": "Gamma" },
+    { "label": "Delta" },
+    { "label": "Epsilon" },
+    { "label": "Zeta" },
+    { "label": "Eta" },
+    { "label": "Theta" },
+    { "label": "Iota" },
+    { "label": "Kappa" },
+    { "label": "Lambda" },
+    { "label": "Mu" },
+    { "label": "Nu" },
+    { "label": "Xi" },
+    { "label": "Omicron" },
+    { "label": "Pi" },
+    { "label": "Rho" },
+    { "label": "Sigma" },
+    { "label": "Tau" },
+    { "label": "Upsilon" },
+    { "label": "Phi" },
+    { "label": "Chi" },
+    { "label": "Psi" },
+    { "label": "Omega" }
+  ]
+}

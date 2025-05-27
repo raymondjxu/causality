@@ -1,5 +1,11 @@
-[
-  { "label": "Event 1" },
-  { "label": "Event 2" },
-  { "label": "Event 3" }
-]
+{
+  "fixed": [
+    { "label": "Event 1" },
+    { "label": "Event 2" }
+  ],
+  "events": [
+    { "label": "Event 1" },
+    { "label": "Event 2" },
+    { "label": "Event 3" }
+  ]
+}
