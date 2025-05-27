@@ -1,0 +1,12 @@
+[
+  {
+    "filename": "eventList1.json",
+    "name": "Simple Timeline",
+    "description": "A basic timeline with three numbered events."
+  },
+  {
+    "filename": "eventList2.json",
+    "name": "Greek Letters",
+    "description": "A timeline using Greek letter events."
+  }
+]

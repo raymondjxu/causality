@@ -3,45 +3,115 @@ import React, { useState, useRef } from 'react';
 import Draggable from 'react-draggable';
 import ReactDOM from 'react-dom/client';
 
+// Import the ordered list of events from a separate file
+
+
+function EventListSelector({ manifest, onSelect }) {
+  return (
+    <div style={{
+      position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+      background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+    }}>
+      <div style={{ background: 'white', padding: 32, borderRadius: 8, minWidth: 320 }}>
+        <h2>Select an Event List</h2>
+        <ul style={{ listStyle: 'none', padding: 0 }}>
+          {manifest.map((item, idx) => (
+            <li key={item.filename} style={{ margin: '16px 0' }}>
+              <button onClick={() => onSelect(item)} style={{ width: '100%', padding: 12, borderRadius: 4, border: '1px solid #ccc', background: '#f5f5f5', cursor: 'pointer', textAlign: 'left' }}>
+                <strong>{item.name}</strong>
+                <div style={{ fontSize: 14, color: '#555' }}>{item.description}</div>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
 function App() {
-  // Change events to objects with a label and y position
+  // Manifest of available event lists
+  const [eventListManifest, setEventListManifest] = React.useState(null);
+  // The selected event list filename (from manifest)
+  const [selectedEventList, setSelectedEventList] = React.useState(null);
+  // State for the ordered list of events, fetched from a remote JSON file
+  const [orderedEventList, setOrderedEventList] = React.useState([]);
+
+  // Fetch the manifest on mount
+  React.useEffect(() => {
+    fetch(process.env.PUBLIC_URL + '/eventListManifest.json')
+      .then(res => res.json())
+      .then(data => setEventListManifest(data));
+  }, []);
+
+  // When a list is selected, fetch its events
+  React.useEffect(() => {
+    if (selectedEventList) {
+      fetch(process.env.PUBLIC_URL + '/' + selectedEventList.filename)
+        .then(res => res.json())
+        .then(data => setOrderedEventList(data));
+    }
+  }, [selectedEventList]);
+
+
+  // Always call hooks at the top level
   const [fixedEvents, setFixedEvents] = useState([
     { label: 'Event 1'},
     { label: 'Event 2'},
-    { label: 'Event 3'},
   ]);
-
   const timelineRef = useRef(null);
-
-  // baseY should be the y position of the first event; it's the middle of the timeline
   const [baseY, setBaseY] = useState(0);
+  // Only declare draggable state and ref once
+  const [draggablePosition, setDraggablePosition] = useState({ x: 0, y: 0 });
+  const draggableRef = useRef(null);
 
-  const eventSpacing = 70; // Adjust spacing as needed
+    const eventSpacing = 70; // Adjust spacing as needed
 
   React.useEffect(() => {
     if (timelineRef.current) {
       setBaseY(timelineRef.current.offsetHeight / 2 - eventSpacing * (fixedEvents.length) / 2);
     }
   }, []);
+
+  // Early return for selector, but after all hooks
+  if (eventListManifest && !selectedEventList) {
+    return <EventListSelector manifest={eventListManifest} onSelect={setSelectedEventList} />;
+  }
+
+  // baseY should be the y position of the first event; it's the middle of the timeline
+  //const [baseY, setBaseY] = useState(0);
+
+  
     
   const mapIndexToY = (index) => {
     return baseY + index * eventSpacing; // Adjust spacing as needed
   }
 
-  const [draggablePosition, setDraggablePosition] = useState({ x: 0, y: 0 });
-  const draggableRef = useRef(null);
+
+  // Find the next event from the ordered list that is not already on the timeline
+  const getNextAvailableEvent = () => {
+    const timelineLabels = fixedEvents.map(ev => ev.label);
+    for (let i = 0; i < orderedEventList.length; i++) {
+      if (!timelineLabels.includes(orderedEventList[i].label)) {
+        return orderedEventList[i];
+      }
+    }
+    return null; // All events are already on the timeline
+  };
+
 
   // calculate the index of the draggable event based on its y position
   const getFullTimelineIncludingProspectiveEvent = () => {
     if(!!timelineRef.current && (draggablePosition.x - (timelineRef.current.offsetLeft + timelineRef.current.width)/2) > 20) {
-      console.log("Draggable event position is", draggablePosition);
-      console.log("Timeline offset is", timelineRef.current.offsetLeft);
       return fixedEvents;
     }
 
+    const nextEvent = getNextAvailableEvent();
+    if (!nextEvent) return fixedEvents;
+
     const index = Math.floor((draggablePosition.y - baseY) / eventSpacing);
     const prospectiveEvent = {
-      label: 'Prospective Event',
+      label: nextEvent.label,
       type: 'prospective',
       y: draggablePosition.y,
     };
@@ -52,15 +122,18 @@ function App() {
       fullTimeline.push(prospectiveEvent);
     }
     return fullTimeline;
-
   };
 
   const handleStop = (e, data) => {
-    // reset the draggable, add the event to the timeline
+    // Only allow adding if there is a next available event
+    const nextEvent = getNextAvailableEvent();
+    if (!nextEvent) {
+      setDraggablePosition({ x: 0, y: 0 });
+      return;
+    }
     const index = Math.floor((data.y - baseY) / eventSpacing);
     const newEvent = {
-      label: 'New Event' + Math.random(),
-      //type: 'prospective',
+      label: nextEvent.label,
       y: data.y,
     };
     const fullTimeline = [...fixedEvents];
@@ -69,14 +142,26 @@ function App() {
     } else if (index === fullTimeline.length) {
       fullTimeline.push(newEvent);
     }
+
+    // Check if the new timeline is in the correct order
+    const timelineLabels = fullTimeline.map(ev => ev.label);
+    const orderedLabels = orderedEventList.map(ev => ev.label);
+    let isCorrectOrder = true;
+    let orderedIdx = 0;
+    for (let i = 0; i < timelineLabels.length; i++) {
+      if (timelineLabels[i] !== orderedLabels[orderedIdx]) {
+        isCorrectOrder = false;
+        break;
+      }
+      orderedIdx++;
+    }
+    if (!isCorrectOrder) {
+      alert('The new event was placed in an incorrect order!');
+    }
+
     setFixedEvents(fullTimeline);
     setDraggablePosition({ x: 0, y: 0 });
     setBaseY(timelineRef.current.offsetHeight / 2 - eventSpacing * (fullTimeline.length) / 2);
-    console.log("New event added to timeline", newEvent);
-    console.log("New timeline is", fullTimeline);
-    console.log("New baseY is", baseY);
-    console.log("New draggable position is", draggablePosition);
-    console.log("New timeline offset is", timelineRef.current.offsetLeft);
   }
 
   return (
@@ -125,7 +210,7 @@ function App() {
               textAlign: 'center',
               cursor: 'move'
             }}>
-            Drag Me
+            {getNextAvailableEvent() ? `Drag: ${getNextAvailableEvent().label}` : 'All events placed!'}
           </div>
         </Draggable>
       </div>
