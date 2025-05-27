@@ -158,28 +158,94 @@ function App() {
   }
 
 
-  // Find the next event from the ordered list that is not already on the timeline
-  const getNextAvailableEvent = () => {
+
+  // Find a random event from the ordered list that is not already on the timeline
+  const getRandomAvailableEvent = () => {
     const timelineLabels = fixedEvents.map(ev => ev.label);
-    for (let i = 0; i < orderedEventList.length; i++) {
-      if (!timelineLabels.includes(orderedEventList[i].label)) {
-        return orderedEventList[i];
-      }
-    }
-    return null; // All events are already on the timeline
+    const available = orderedEventList.filter(ev => !timelineLabels.includes(ev.label));
+    if (available.length === 0) return null;
+    return available[Math.floor(Math.random() * available.length)];
   };
+
+  // Store the current random event to keep it consistent until placed
+  /** @type {[EventObj|null, Function]} */
+  const [currentRandomEvent, setCurrentRandomEvent] = useState(/** @type {EventObj|null} */(null));
+
+  // Update the random event when fixedEvents or orderedEventList changes
+  useEffect(() => {
+    const timelineLabels = fixedEvents.map(ev => ev.label);
+    const available = orderedEventList.filter(ev => !timelineLabels.includes(ev.label));
+    if (available.length === 0) {
+      setCurrentRandomEvent(null);
+    } else if (!currentRandomEvent || timelineLabels.includes(currentRandomEvent.label)) {
+      setCurrentRandomEvent(available[Math.floor(Math.random() * available.length)]);
+    }
+    // eslint-disable-next-line
+  }, [fixedEvents, orderedEventList]);
 
     // ...existing state and hooks...
     // Register hotkey for placing next event
-    usePlaceNextEventHotkey({
-      getNextAvailableEvent,
-      fixedEvents,
-      setFixedEvents,
-      orderedEventList,
-      timelineRef,
-      eventSpacing,
-      setBaseY
-    });
+
+    // Hotkey for placing the current random event in the correct place
+    useEffect(() => {
+      const handleKeyDown = (e) => {
+        if ((e.key === 'Enter' && (e.metaKey || e.ctrlKey))) {
+          if (!currentRandomEvent) return;
+          // Find the correct index for this event in the timeline
+          const timelineLabels = fixedEvents.map(ev => ev.label);
+          const orderedLabels = orderedEventList.map(ev => ev.label);
+          // Find the index in fixedEvents where this event should go
+          let insertIdx = 0;
+          let orderedIdx = 0;
+          for (; insertIdx < fixedEvents.length; insertIdx++) {
+            // Find the next event in orderedLabels that matches fixedEvents[insertIdx]
+            while (orderedIdx < orderedLabels.length && orderedLabels[orderedIdx] !== fixedEvents[insertIdx].label) {
+              orderedIdx++;
+            }
+            // If the next event in order is our random event, insert here
+            if (orderedIdx < orderedLabels.length && orderedLabels[orderedIdx + 1] === currentRandomEvent.label) {
+              insertIdx++;
+              break;
+            }
+          }
+          // If not found, place at the end
+          if (insertIdx > fixedEvents.length) insertIdx = fixedEvents.length;
+          // Actually, we want to insert at the position in orderedLabels
+          // Find the correct index in fixedEvents to keep the order
+          let correctIdx = 0;
+          for (; correctIdx < fixedEvents.length; correctIdx++) {
+            const idxInOrdered = orderedLabels.indexOf(fixedEvents[correctIdx].label);
+            const randomIdx = orderedLabels.indexOf(currentRandomEvent.label);
+            if (randomIdx < idxInOrdered) break;
+          }
+          const newEvent = { label: currentRandomEvent.label };
+          const fullTimeline = [...fixedEvents];
+          fullTimeline.splice(correctIdx, 0, newEvent);
+          // Check if the new timeline is a valid subsequence of the ordered list
+          const newTimelineLabels = fullTimeline.map(ev => ev.label);
+          let j = 0;
+          let isCorrectOrder = true;
+          for (let i = 0; i < newTimelineLabels.length; i++) {
+            while (j < orderedLabels.length && orderedLabels[j] !== newTimelineLabels[i]) {
+              j++;
+            }
+            if (j === orderedLabels.length) {
+              isCorrectOrder = false;
+              break;
+            }
+            j++;
+          }
+          if (!isCorrectOrder) {
+            alert('Placing this event would be out of order!');
+            return;
+          }
+          setFixedEvents(fullTimeline);
+          setBaseY(timelineRef.current && timelineRef.current.offsetHeight ? timelineRef.current.offsetHeight / 2 - eventSpacing * (fullTimeline.length) / 2 : 0);
+        }
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [currentRandomEvent, fixedEvents, setFixedEvents, orderedEventList, timelineRef, eventSpacing, setBaseY]);
 
       // Early return for selector, but after all hooks
   if (eventListManifest && !selectedEventList) {
@@ -197,7 +263,7 @@ function App() {
       }
     }
 
-    const nextEvent = getNextAvailableEvent();
+    const nextEvent = currentRandomEvent;
     if (!nextEvent) return fixedEvents;
 
     // Adjust for scroll position
@@ -220,8 +286,8 @@ function App() {
   };
 
   const handleStop = (e, data) => {
-    // Only allow adding if there is a next available event
-    const nextEvent = getNextAvailableEvent();
+    // Only allow adding if there is a random event
+    const nextEvent = currentRandomEvent;
     if (!nextEvent) {
       setDraggablePosition({ x: 0, y: 0 });
       return;
@@ -276,10 +342,10 @@ function App() {
     setDraggablePosition({ x: 0, y: 0 });
     // baseY is always TOP_SPACER, so no need to update
     // Show modal if all events are placed
-    if (!getNextAvailableEvent().label) {
+    if (!getRandomAvailableEvent()) {
       setShowCompletion(true);
     }
-    console.log("Next event label:", nextEvent.label);
+    // console.log("Placed event label:", nextEvent.label);
   }
 
   return (
@@ -339,7 +405,7 @@ function App() {
       </div>
       
       <div style={{ width: '200px', padding: '20px', backgroundColor: '#f9f9f9', borderLeft: '1px solid #ccc' }}>
-        <h2 style={{ textAlign: 'center' }}>Draggable Event</h2>
+        <h2 style={{ textAlign: 'center' }}>Place Me!</h2>
         <Draggable
           nodeRef={draggableRef}
           position={draggablePosition}
@@ -358,7 +424,7 @@ function App() {
               textAlign: 'center',
               cursor: 'move'
             }}>
-            {getNextAvailableEvent() ? `Drag: ${getNextAvailableEvent().label}` : 'All events placed!'}
+            {currentRandomEvent ? `Drag: ${currentRandomEvent.label}` : 'All events placed!'}
           </div>
         </Draggable>
       </div>
