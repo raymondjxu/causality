@@ -1,0 +1,17 @@
+{
+    "fixed": [
+        { "label": "Battle of Gettysburg" }
+    ],
+    "events": [
+        { "label": "First Bull Run/First Manassas" },
+        { "label": "Seven Days' Battles" },
+        { "label": "Battle of Shiloh/Pittsburg Landing" },
+        { "label": "Battle of Antietam" },
+        { "label": "Battle of Chancellorsville" },
+        { "label": "Battle of Gettysburg" },
+        { "label": "Battle of Vicksburg" },
+        { "label": "Battle of Spotsylvania" },
+        { "label": "Battle of Atlanta" },
+        { "label": "Siege of Petersburg" }
+    ]
+}

@@ -2,12 +2,26 @@
   {
     "filename": "lists/greekLetters.json",
     "name": "Greek Letters",
-    "description": "Testing timeline -- greek letters"
-
+    "description": "Testing timeline -- greek letters. Difficulty: Trivial"
   },
   {
     "filename": "lists/usPresidents.json",
     "name": "US Presidents",
-    "description": "Timeline of US presidents in order"
+    "description": "Timeline of US presidents in order. Difficulty: Medium"
+  },
+  {
+    "filename": "lists/civilWarBattles.json",
+    "name": "US Civil War Battles",
+    "description": "Major battles of the US Civil War. Difficulty: Medium"
+  },
+  {
+    "filename": "lists/progressivePresidents.json",
+    "name": "Progressive Era Presidents",
+    "description": "US Presidents during the Progressive Era. Difficulty: Easy"
+  },
+  {
+    "filename": "lists/changePeriod4-6.json",
+    "name": "Change in Period 4-6",
+    "description": "Major changes in the US during Periods 4-6. Difficulty: Trivial"
   }
 ]

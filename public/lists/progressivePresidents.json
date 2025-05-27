@@ -1,0 +1,14 @@
+{
+  "fixed": [
+    { "label": "Warren G. Harding" }
+  ],
+  "events": [
+    { "label": "William McKinley" },
+    { "label": "Theodore Roosevelt" },
+    { "label": "William Howard Taft" },
+    { "label": "Woodrow Wilson" },
+    { "label": "Warren G. Harding" },
+    { "label": "Calvin Coolidge" },
+    { "label": "Herbert Hoover" }
+  ]
+}
