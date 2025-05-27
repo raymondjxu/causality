@@ -23,5 +23,10 @@
     "filename": "lists/changePeriod4-6.json",
     "name": "Change in Period 4-6",
     "description": "Major changes in the US during Periods 4-6. Difficulty: Trivial"
+  },
+  {
+    "filename": "lists/apushAtAGlance.json",
+    "name": "APUSH at a Glance, Colonial Era to Reconstruction",
+    "description": "A quick overview of major events in AP US History. Difficulty: Medium"
   }
 ]
