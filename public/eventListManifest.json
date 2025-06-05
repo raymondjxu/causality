@@ -24,4 +24,15 @@
     "name": "Change in Period 4-6",
     "description": "Major changes in the US during Periods 4-6. Difficulty: Trivial"
   }
+  ,
+  {
+    "filename": "lists/majorTechInnovationsUS.json",
+    "name": "Major US Technological Innovations",
+    "description": "Chronological list of major technological innovations in US history. Difficulty: Medium"
+  },
+  {
+    "filename": "lists/apushAtAGlance.json",
+    "name": "APUSH At A Glance",
+    "description": "Key events in US history at a glance. Difficulty: Medium"
+  }
 ]

@@ -1,0 +1,35 @@
+
+{
+  "fixed": [
+    { "label": "Cotton gin (Eli Whitney)" }
+  ],
+  "events": [
+    { "label": "Cotton gin (Eli Whitney)" },
+    { "label": "Steamboat (Robert Fulton)" },
+    { "label": "Air brakes (George Westinghouse)" },
+    { "label": "Telegraph (Samuel Morse)" },
+    { "label": "Sewing machine (Elias Howe)" },
+    { "label": "Elevator safety brake (Elisha Otis)" },
+    { "label": "Typewriter (Christopher Sholes)" },
+    { "label": "Telephone (Alexander Graham Bell)" },
+    { "label": "Electric light bulb (Thomas Edison)" },
+    { "label": "Alternating current (Tesla, Westinghouse)" },
+    { "label": "Skyscraper (Home Insurance Building, Chicago)" },
+    { "label": "Zipper (Whitcomb Judson)" },
+    { "label": "Airplane (Wright brothers)" },
+    { "label": "Television (Philo Farnsworth)" },
+    { "label": "Atomic bomb (Manhattan Project)" },
+    { "label": "Transistor (Bell Labs)" },
+    { "label": "Integrated circuit (Jack Kilby, Robert Noyce)" },
+    { "label": "ARPANET (precursor to the Internet)" },
+    { "label": "Mobile phone (Martin Cooper)" },
+    { "label": "Personal computer (Apple I)" },
+    { "label": "Space Shuttle (first launch)" },
+    { "label": "World Wide Web (Tim Berners-Lee, CERN, but popularized in US)" },
+    { "label": "iPhone (Apple)" }
+  ]
+}
+
+
+
+

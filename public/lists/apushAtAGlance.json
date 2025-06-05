@@ -1,0 +1,30 @@
+{
+    "fixed": [
+        { "label": "Battle of Gettysburg" }
+    ],
+    "events": [
+        { "label": "Arrival of Columbus" },
+        { "label": "Roanoke Island Disappears"},
+        { "label": "Jamestown Established" },
+        { "label": "Plymouth Colony Established" },
+        { "label": "French and Indian War" },
+        { "label": "Boston Massacre" },
+        { "label": "Boston Tea Party" },
+        { "label": "First Continental Congress" },
+        { "label": "Declaration of Independence" },
+        { "label": "Battle of Saratoga" },
+        { "label": "Articles of Confederation Ratified" },
+        { "label": "Constitution Ratified" },
+        { "label": "Bill of Rights Added" },
+        { "label": "Louisiana Purchase" },
+        { "label": "War of 1812 Begins" },
+        { "label": "Missouri Compromise" },
+        { "label": "Mexican-American War" },
+        { "label": "California Gold Rush Begins" },
+        { "label": "Civil War Begins" },
+        { "label": "Emancipation Proclamation Issued" },
+        { "label": "Battle of Gettysburg" },
+        { "label": "Reconstruction Begins" }
+
+    ]
+}

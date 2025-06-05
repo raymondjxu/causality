@@ -270,7 +270,11 @@ function App() {
     const scrollTop = timelineRef.current ? timelineRef.current.scrollTop : 0;
     // Use consistent top spacer
     const adjustedY = draggablePosition.y + scrollTop;
-    const index = Math.floor((adjustedY - TOP_SPACER) / eventSpacing);
+    let index = Math.floor((adjustedY - TOP_SPACER) / eventSpacing);
+    // If within 200px above the timeline, treat as index 0
+    if (adjustedY < TOP_SPACER + 200) {
+      index = 0;
+    }
     const prospectiveEvent = {
       label: nextEvent.label,
       type: 'prospective',
@@ -304,7 +308,11 @@ function App() {
     const scrollTop = timelineRef.current ? timelineRef.current.scrollTop : 0;
     // Use consistent top spacer
     const adjustedY = data.y + scrollTop;
-    const index = Math.floor((adjustedY - TOP_SPACER) / eventSpacing);
+    let index = Math.floor((adjustedY - TOP_SPACER) / eventSpacing);
+    // If within 200px above the timeline, treat as index 0
+    if (adjustedY < TOP_SPACER + 200) {
+      index = 0;
+    }
     const newEvent = {
       label: nextEvent.label,
       y: adjustedY,
