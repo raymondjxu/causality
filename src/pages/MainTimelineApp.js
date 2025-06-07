@@ -195,7 +195,12 @@ export default function MainTimelineApp() {
       {showCompletion && <CompletionModal onClose={() => navigate('/')} show={showCompletion} />}
       <div className="App" style={{ display: 'flex', flexDirection: 'row', height: '100vh' }}>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          <header style={{ textAlign: 'center', padding: '20px', backgroundColor: '#282c34', color: 'white' }}>
+          <header style={{ textAlign: 'center', padding: '20px', backgroundColor: '#282c34', color: 'white', position: 'relative' }}>
+            <button onClick={() => navigate('/')} aria-label="Back" style={{ position: 'absolute', left: '20px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
             <h1>Timeline of Events</h1>
           </header>
           <main
