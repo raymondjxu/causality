@@ -18,7 +18,7 @@ export default function CompletionModal({ onClose }) {
         <div style={{ fontSize: 64, marginBottom: 16 }}>🏆</div>
         <h2>Congratulations!</h2>
         <p>You placed all events in the correct order.</p>
-        <button onClick={onClose} style={{ marginTop: 24, padding: '10px 24px', borderRadius: 8, fontSize: 18, background: '#4caf50', color: 'white', border: 'none', cursor: 'pointer' }}>Close</button>
+        <button onClick={onClose} style={{ marginTop: 24, padding: '10px 24px', borderRadius: 8, fontSize: 18, background: '#4caf50', color: 'white', border: 'none', cursor: 'pointer' }}>Go to Main Menu</button>
       </div>
     </div>
   );

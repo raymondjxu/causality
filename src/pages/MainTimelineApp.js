@@ -2,15 +2,21 @@ import React, { useState, useRef, useEffect } from 'react';
 import Draggable from 'react-draggable';
 import CompletionModal from '../components/CompletionModal';
 import EventListSelector from '../components/EventListSelector';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+
+// Type for event objects
+/**
+ * @typedef {{ label: string, [key: string]: any }} EventObj
+ */
 
 export default function MainTimelineApp() {
   const { eventListId } = useParams();
+  const navigate = useNavigate();
   const [showCompletion, setShowCompletion] = useState(false);
-  const [eventListManifest, setEventListManifest] = React.useState(null);
-  const [selectedEventList, setSelectedEventList] = React.useState(null);
-  const [orderedEventList, setOrderedEventList] = React.useState([]);
-  const [fixedEvents, setFixedEvents] = useState([]);
+  const [eventListManifest, setEventListManifest] = useState(null);
+  const [selectedEventList, setSelectedEventList] = useState(/** @type {string|null} */(null));
+  const [orderedEventList, setOrderedEventList] = useState(/** @type {EventObj[]} */([]));
+  const [fixedEvents, setFixedEvents] = useState(/** @type {EventObj[]} */([]));
   useEffect(() => {
     fetch(process.env.PUBLIC_URL + '/eventListManifest.json')
       .then(res => res.json())
@@ -18,12 +24,12 @@ export default function MainTimelineApp() {
   }, []);
   useEffect(() => {
     if (eventListId) {
-      setSelectedEventList({ filename: eventListId });
+      setSelectedEventList(eventListId);
     }
   }, [eventListId]);
   useEffect(() => {
     if (selectedEventList) {
-      fetch(process.env.PUBLIC_URL + '/' + selectedEventList.filename)
+      fetch(process.env.PUBLIC_URL + '/' + selectedEventList)
         .then(res => res.json())
         .then(data => {
           if (Array.isArray(data)) {
@@ -198,80 +204,81 @@ export default function MainTimelineApp() {
   };
   return (
     <>
-      {showCompletion && <CompletionModal onClose={() => setShowCompletion(false)} />}
+      {/* Always render the modal, but only show it when showCompletion is true */}
+      <CompletionModal onClose={() => navigate('/')} show={showCompletion} />
       <div className="App" style={{ display: 'flex', flexDirection: 'row', height: '100vh' }}>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <header style={{ textAlign: 'center', padding: '20px', backgroundColor: '#282c34', color: 'white' }}>
-          <h1>Timeline of Events</h1>
-        </header>
-        <main
-          style={{
-            position: 'relative',
-            height: '100%',
-            minHeight: 0,
-            overflow: 'auto',
-            maxHeight: 'calc(100vh - 80px)',
-            borderRight: '1px solid #eee',
-          }}
-          ref={timelineRef}
-        >
-          <div
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <header style={{ textAlign: 'center', padding: '20px', backgroundColor: '#282c34', color: 'white' }}>
+            <h1>Timeline of Events</h1>
+          </header>
+          <main
             style={{
               position: 'relative',
-              minHeight: `${(fixedEvents.length + 1) * eventSpacing + 300}px`,
-              width: '100%',
-              boxSizing: 'border-box',
+              height: '100%',
+              minHeight: 0,
+              overflow: 'auto',
+              maxHeight: 'calc(100vh - 80px)',
+              borderRight: '1px solid #eee',
             }}
+            ref={timelineRef}
           >
-            <div style={{ height: '100px', pointerEvents: 'none' }} />
-            {getFullTimelineIncludingProspectiveEvent().map((event, index) => (
-              <div
-                key={index}
-                style={{
-                  position: 'absolute',
-                  top: `${TOP_SPACER + index * eventSpacing}px`,
-                  left: 'calc(50% - 100px)',
-                  width: '200px',
-                  padding: '10px',
-                  margin: '10px 0',
-                  backgroundColor: event.type === 'prospective' ? '#f8d7da' : '#e2e3e5',
-                  border: '1px solid #ccc',
-                  borderRadius: '5px',
-                  textAlign: 'center',
-                  zIndex: event.type === 'prospective' ? 2 : 1,
-                }}
-              >
-                {event.label}
-              </div>
-            ))}
-            <div style={{ height: '200px', pointerEvents: 'none' }} />
-          </div>
-        </main>
+            <div
+              style={{
+                position: 'relative',
+                minHeight: `${(fixedEvents.length + 1) * eventSpacing + 300}px`,
+                width: '100%',
+                boxSizing: 'border-box',
+              }}
+            >
+              <div style={{ height: '100px', pointerEvents: 'none' }} />
+              {getFullTimelineIncludingProspectiveEvent().map((event, index) => (
+                <div
+                  key={index}
+                  style={{
+                    position: 'absolute',
+                    top: `${TOP_SPACER + index * eventSpacing}px`,
+                    left: 'calc(50% - 100px)',
+                    width: '200px',
+                    padding: '10px',
+                    margin: '10px 0',
+                    backgroundColor: event.type === 'prospective' ? '#f8d7da' : '#e2e3e5',
+                    border: '1px solid #ccc',
+                    borderRadius: '5px',
+                    textAlign: 'center',
+                    zIndex: event.type === 'prospective' ? 2 : 1,
+                  }}
+                >
+                  {event.label}
+                </div>
+              ))}
+              <div style={{ height: '200px', pointerEvents: 'none' }} />
+            </div>
+          </main>
+        </div>
+        <div style={{ width: '200px', padding: '20px', backgroundColor: '#f9f9f9', borderLeft: '1px solid #ccc' }}>
+          <h2 style={{ textAlign: 'center' }}>Place Me!</h2>
+          <Draggable
+            nodeRef={draggableRef}
+            position={draggablePosition}
+            onDrag={(e, data) => {
+              setDraggablePosition({ x: data.x, y: data.y });
+            }}
+            onStop={handleStop}
+           >
+            <div ref={draggableRef} style={{
+                width: '150px',
+                padding: '10px',
+                backgroundColor: '#d1e7dd',
+                border: '1px solid #0f5132',
+                borderRadius: '5px',
+                textAlign: 'center',
+                cursor: 'move'
+              }}>
+              {currentRandomEvent ? `Drag: ${currentRandomEvent.label}` : 'All events placed!'}
+            </div>
+          </Draggable>
+        </div>
       </div>
-      <div style={{ width: '200px', padding: '20px', backgroundColor: '#f9f9f9', borderLeft: '1px solid #ccc' }}>
-        <h2 style={{ textAlign: 'center' }}>Place Me!</h2>
-        <Draggable
-          nodeRef={draggableRef}
-          position={draggablePosition}
-          onDrag={(e, data) => {
-            setDraggablePosition({ x: data.x, y: data.y });
-          }}
-          onStop={handleStop}
-         >
-          <div ref={draggableRef} style={{
-              width: '150px',
-              padding: '10px',
-              backgroundColor: '#d1e7dd',
-              border: '1px solid #0f5132',
-              borderRadius: '5px',
-              textAlign: 'center',
-              cursor: 'move'
-            }}>
-            {currentRandomEvent ? `Drag: ${currentRandomEvent.label}` : 'All events placed!'}
-          </div>
-        </Draggable>
-      </div>
-    </div>
     </>
   );
 }
