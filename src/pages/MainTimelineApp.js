@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useState, useRef, useEffect } from 'react';
 import Draggable from 'react-draggable';
 import CompletionModal from '../components/CompletionModal';
@@ -58,6 +59,43 @@ export default function MainTimelineApp() {
     return available[Math.floor(Math.random() * available.length)];
   };
   const [currentRandomEvent, setCurrentRandomEvent] = useState(null);
+
+  // Abstracted function to add an event to the timeline with validation
+  const addEventToTimeline = (newEvent, index) => {
+    const fullTimeline = [...fixedEvents];
+    fullTimeline.splice(index, 0, newEvent);
+    const timelineLabels = fullTimeline.map(ev => ev.label);
+    const orderedLabels = orderedEventList.map(ev => ev.label);
+    let j = 0;
+    let isCorrectOrder = true;
+    for (let i = 0; i < timelineLabels.length; i++) {
+      while (j < orderedLabels.length && orderedLabels[j] !== timelineLabels[i]) {
+        j++;
+      }
+      if (j === orderedLabels.length) {
+        isCorrectOrder = false;
+        break;
+      }
+      j++;
+    }
+    if (!isCorrectOrder) {
+      alert('Placing this event would be out of order!');
+      return false;
+    }
+    setFixedEvents(fullTimeline);
+
+    // check to see if we filled the timeline, can't use length because duplicates are possible, instead check to see if any available events remain
+    const available = orderedEventList.filter(ev => !fullTimeline.map(e => e.label).includes(ev.label));
+    if (available.length === 0) {
+      setShowCompletion(true);
+      console.log('Timeline complete!');
+    } else {
+      console.log("Timeline not complete yet, available events remain.", available);
+    }
+
+    return true;
+  };
+
   useEffect(() => {
     const timelineLabels = fixedEvents.map(ev => ev.label);
     const available = orderedEventList.filter(ev => !timelineLabels.includes(ev.label));
@@ -72,20 +110,7 @@ export default function MainTimelineApp() {
     const handleKeyDown = (e) => {
       if ((e.key === 'Enter' && (e.metaKey || e.ctrlKey))) {
         if (!currentRandomEvent) return;
-        const timelineLabels = fixedEvents.map(ev => ev.label);
         const orderedLabels = orderedEventList.map(ev => ev.label);
-        let insertIdx = 0;
-        let orderedIdx = 0;
-        for (; insertIdx < fixedEvents.length; insertIdx++) {
-          while (orderedIdx < orderedLabels.length && orderedLabels[orderedIdx] !== fixedEvents[insertIdx].label) {
-            orderedIdx++;
-          }
-          if (orderedIdx < orderedLabels.length && orderedLabels[orderedIdx + 1] === currentRandomEvent.label) {
-            insertIdx++;
-            break;
-          }
-        }
-        if (insertIdx > fixedEvents.length) insertIdx = fixedEvents.length;
         let correctIdx = 0;
         for (; correctIdx < fixedEvents.length; correctIdx++) {
           const idxInOrdered = orderedLabels.indexOf(fixedEvents[correctIdx].label);
@@ -93,27 +118,10 @@ export default function MainTimelineApp() {
           if (randomIdx < idxInOrdered) break;
         }
         const newEvent = { label: currentRandomEvent.label };
-        const fullTimeline = [...fixedEvents];
-        fullTimeline.splice(correctIdx, 0, newEvent);
-        const newTimelineLabels = fullTimeline.map(ev => ev.label);
-        let j = 0;
-        let isCorrectOrder = true;
-        for (let i = 0; i < newTimelineLabels.length; i++) {
-          while (j < orderedLabels.length && orderedLabels[j] !== newTimelineLabels[i]) {
-            j++;
-          }
-          if (j === orderedLabels.length) {
-            isCorrectOrder = false;
-            break;
-          }
-          j++;
+        const success = addEventToTimeline(newEvent, correctIdx);
+        if (success) {
+          setBaseY(timelineRef.current ? timelineRef.current.offsetHeight / 2 - eventSpacing * (fixedEvents.length) / 2 : 0);
         }
-        if (!isCorrectOrder) {
-          alert('Placing this event would be out of order!');
-          return;
-        }
-        setFixedEvents(fullTimeline);
-        setBaseY(timelineRef.current && timelineRef.current.offsetHeight ? timelineRef.current.offsetHeight / 2 - eventSpacing * (fullTimeline.length) / 2 : 0);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -161,11 +169,10 @@ export default function MainTimelineApp() {
         return;
       }
     }
-    const fullTimeline = [...fixedEvents];
     const scrollTop = timelineRef.current ? timelineRef.current.scrollTop : 0;
     const adjustedY = data.y + scrollTop;
-    let index = fullTimeline.length;
-    for (let i = 0; i < fullTimeline.length; i++) {
+    let index = fixedEvents.length;
+    for (let i = 0; i < fixedEvents.length; i++) {
       const eventCenterY = TOP_SPACER + i * eventSpacing + eventSpacing / 2;
       if (adjustedY < eventCenterY) {
         index = i;
@@ -176,36 +183,16 @@ export default function MainTimelineApp() {
       label: nextEvent.label,
       y: adjustedY,
     };
-    fullTimeline.splice(index, 0, newEvent);
-    const timelineLabels = fullTimeline.map(ev => ev.label);
-    const orderedLabels = orderedEventList.map(ev => ev.label);
-    let j = 0;
-    let isCorrectOrder = true;
-    for (let i = 0; i < timelineLabels.length; i++) {
-      while (j < orderedLabels.length && orderedLabels[j] !== timelineLabels[i]) {
-        j++;
-      }
-      if (j === orderedLabels.length) {
-        isCorrectOrder = false;
-        break;
-      }
-      j++;
-    }
-    if (!isCorrectOrder) {
-      alert('The new event was placed in an incorrect order!');
-      setDraggablePosition({ x: 0, y: 0 });
-      return;
-    }
-    setFixedEvents(fullTimeline);
+    const success = addEventToTimeline(newEvent, index);
     setDraggablePosition({ x: 0, y: 0 });
-    if (!getRandomAvailableEvent()) {
-      setShowCompletion(true);
+    if (success) {
+      setBaseY(timelineRef.current ? timelineRef.current.offsetHeight / 2 - eventSpacing * (fixedEvents.length) / 2 : 0);
     }
   };
   return (
     <>
       {/* Always render the modal, but only show it when showCompletion is true */}
-      <CompletionModal onClose={() => navigate('/')} show={showCompletion} />
+      {showCompletion && <CompletionModal onClose={() => navigate('/')} show={showCompletion} />}
       <div className="App" style={{ display: 'flex', flexDirection: 'row', height: '100vh' }}>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           <header style={{ textAlign: 'center', padding: '20px', backgroundColor: '#282c34', color: 'white' }}>
