@@ -1,0 +1,277 @@
+import React, { useState, useRef, useEffect } from 'react';
+import Draggable from 'react-draggable';
+import CompletionModal from '../components/CompletionModal';
+import EventListSelector from '../components/EventListSelector';
+import { useParams } from 'react-router-dom';
+
+export default function MainTimelineApp() {
+  const { eventListId } = useParams();
+  const [showCompletion, setShowCompletion] = useState(false);
+  const [eventListManifest, setEventListManifest] = React.useState(null);
+  const [selectedEventList, setSelectedEventList] = React.useState(null);
+  const [orderedEventList, setOrderedEventList] = React.useState([]);
+  const [fixedEvents, setFixedEvents] = useState([]);
+  useEffect(() => {
+    fetch(process.env.PUBLIC_URL + '/eventListManifest.json')
+      .then(res => res.json())
+      .then(data => setEventListManifest(data));
+  }, []);
+  useEffect(() => {
+    if (eventListId) {
+      setSelectedEventList({ filename: eventListId });
+    }
+  }, [eventListId]);
+  useEffect(() => {
+    if (selectedEventList) {
+      fetch(process.env.PUBLIC_URL + '/' + selectedEventList.filename)
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) {
+            setOrderedEventList(data);
+            setFixedEvents([]);
+          } else {
+            setOrderedEventList(data.events || []);
+            setFixedEvents(data.fixed || []);
+          }
+        });
+    }
+  }, [selectedEventList]);
+  const TOP_SPACER = 100;
+  const timelineRef = useRef(null);
+  const [baseY, setBaseY] = useState(TOP_SPACER);
+  const [draggablePosition, setDraggablePosition] = useState({ x: 0, y: 0 });
+  const draggableRef = useRef(null);
+  const eventSpacing = 70;
+  useEffect(() => {
+    setBaseY(TOP_SPACER);
+  }, [fixedEvents.length]);
+  const getRandomAvailableEvent = () => {
+    const timelineLabels = fixedEvents.map(ev => ev.label);
+    const available = orderedEventList.filter(ev => !timelineLabels.includes(ev.label));
+    if (available.length === 0) return null;
+    return available[Math.floor(Math.random() * available.length)];
+  };
+  const [currentRandomEvent, setCurrentRandomEvent] = useState(null);
+  useEffect(() => {
+    const timelineLabels = fixedEvents.map(ev => ev.label);
+    const available = orderedEventList.filter(ev => !timelineLabels.includes(ev.label));
+    if (available.length === 0) {
+      setCurrentRandomEvent(null);
+    } else if (!currentRandomEvent || timelineLabels.includes(currentRandomEvent.label)) {
+      setCurrentRandomEvent(available[Math.floor(Math.random() * available.length)]);
+    }
+    // eslint-disable-next-line
+  }, [fixedEvents, orderedEventList]);
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.key === 'Enter' && (e.metaKey || e.ctrlKey))) {
+        if (!currentRandomEvent) return;
+        const timelineLabels = fixedEvents.map(ev => ev.label);
+        const orderedLabels = orderedEventList.map(ev => ev.label);
+        let insertIdx = 0;
+        let orderedIdx = 0;
+        for (; insertIdx < fixedEvents.length; insertIdx++) {
+          while (orderedIdx < orderedLabels.length && orderedLabels[orderedIdx] !== fixedEvents[insertIdx].label) {
+            orderedIdx++;
+          }
+          if (orderedIdx < orderedLabels.length && orderedLabels[orderedIdx + 1] === currentRandomEvent.label) {
+            insertIdx++;
+            break;
+          }
+        }
+        if (insertIdx > fixedEvents.length) insertIdx = fixedEvents.length;
+        let correctIdx = 0;
+        for (; correctIdx < fixedEvents.length; correctIdx++) {
+          const idxInOrdered = orderedLabels.indexOf(fixedEvents[correctIdx].label);
+          const randomIdx = orderedLabels.indexOf(currentRandomEvent.label);
+          if (randomIdx < idxInOrdered) break;
+        }
+        const newEvent = { label: currentRandomEvent.label };
+        const fullTimeline = [...fixedEvents];
+        fullTimeline.splice(correctIdx, 0, newEvent);
+        const newTimelineLabels = fullTimeline.map(ev => ev.label);
+        let j = 0;
+        let isCorrectOrder = true;
+        for (let i = 0; i < newTimelineLabels.length; i++) {
+          while (j < orderedLabels.length && orderedLabels[j] !== newTimelineLabels[i]) {
+            j++;
+          }
+          if (j === orderedLabels.length) {
+            isCorrectOrder = false;
+            break;
+          }
+          j++;
+        }
+        if (!isCorrectOrder) {
+          alert('Placing this event would be out of order!');
+          return;
+        }
+        setFixedEvents(fullTimeline);
+        setBaseY(timelineRef.current && timelineRef.current.offsetHeight ? timelineRef.current.offsetHeight / 2 - eventSpacing * (fullTimeline.length) / 2 : 0);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentRandomEvent, fixedEvents, setFixedEvents, orderedEventList, timelineRef, eventSpacing, setBaseY]);
+  if (eventListManifest && !selectedEventList) {
+    return <EventListSelector manifest={eventListManifest} onSelect={setSelectedEventList} />;
+  }
+  const getFullTimelineIncludingProspectiveEvent = () => {
+    // Only show the preview if the draggable is being held
+    if (draggablePosition.x === 0 && draggablePosition.y === 0) {
+      return fixedEvents;
+    }
+    const fullTimeline = [...fixedEvents];
+    const scrollTop = timelineRef.current ? timelineRef.current.scrollTop : 0;
+    const adjustedY = draggablePosition.y + scrollTop;
+    let index = fullTimeline.length;
+    for (let i = 0; i < fullTimeline.length; i++) {
+      const eventCenterY = TOP_SPACER + i * eventSpacing + eventSpacing / 2;
+      if (adjustedY < eventCenterY) {
+        index = i;
+        break;
+      }
+    }
+    const nextEvent = currentRandomEvent;
+    if (!nextEvent) return fixedEvents;
+    const prospectiveEvent = {
+      label: nextEvent.label,
+      type: 'prospective',
+      y: adjustedY,
+    };
+    fullTimeline.splice(index, 0, prospectiveEvent);
+    return fullTimeline;
+  };
+  const handleStop = (e, data) => {
+    const nextEvent = currentRandomEvent;
+    if (!nextEvent) {
+      setDraggablePosition({ x: 0, y: 0 });
+      return;
+    }
+    if (timelineRef.current) {
+      const dragX = data.x;
+      if (dragX > 0) {
+        setDraggablePosition({ x: 0, y: 0 });
+        return;
+      }
+    }
+    const fullTimeline = [...fixedEvents];
+    const scrollTop = timelineRef.current ? timelineRef.current.scrollTop : 0;
+    const adjustedY = data.y + scrollTop;
+    let index = fullTimeline.length;
+    for (let i = 0; i < fullTimeline.length; i++) {
+      const eventCenterY = TOP_SPACER + i * eventSpacing + eventSpacing / 2;
+      if (adjustedY < eventCenterY) {
+        index = i;
+        break;
+      }
+    }
+    const newEvent = {
+      label: nextEvent.label,
+      y: adjustedY,
+    };
+    fullTimeline.splice(index, 0, newEvent);
+    const timelineLabels = fullTimeline.map(ev => ev.label);
+    const orderedLabels = orderedEventList.map(ev => ev.label);
+    let j = 0;
+    let isCorrectOrder = true;
+    for (let i = 0; i < timelineLabels.length; i++) {
+      while (j < orderedLabels.length && orderedLabels[j] !== timelineLabels[i]) {
+        j++;
+      }
+      if (j === orderedLabels.length) {
+        isCorrectOrder = false;
+        break;
+      }
+      j++;
+    }
+    if (!isCorrectOrder) {
+      alert('The new event was placed in an incorrect order!');
+      setDraggablePosition({ x: 0, y: 0 });
+      return;
+    }
+    setFixedEvents(fullTimeline);
+    setDraggablePosition({ x: 0, y: 0 });
+    if (!getRandomAvailableEvent()) {
+      setShowCompletion(true);
+    }
+  };
+  return (
+    <>
+      {showCompletion && <CompletionModal onClose={() => setShowCompletion(false)} />}
+      <div className="App" style={{ display: 'flex', flexDirection: 'row', height: '100vh' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <header style={{ textAlign: 'center', padding: '20px', backgroundColor: '#282c34', color: 'white' }}>
+          <h1>Timeline of Events</h1>
+        </header>
+        <main
+          style={{
+            position: 'relative',
+            height: '100%',
+            minHeight: 0,
+            overflow: 'auto',
+            maxHeight: 'calc(100vh - 80px)',
+            borderRight: '1px solid #eee',
+          }}
+          ref={timelineRef}
+        >
+          <div
+            style={{
+              position: 'relative',
+              minHeight: `${(fixedEvents.length + 1) * eventSpacing + 300}px`,
+              width: '100%',
+              boxSizing: 'border-box',
+            }}
+          >
+            <div style={{ height: '100px', pointerEvents: 'none' }} />
+            {getFullTimelineIncludingProspectiveEvent().map((event, index) => (
+              <div
+                key={index}
+                style={{
+                  position: 'absolute',
+                  top: `${TOP_SPACER + index * eventSpacing}px`,
+                  left: 'calc(50% - 100px)',
+                  width: '200px',
+                  padding: '10px',
+                  margin: '10px 0',
+                  backgroundColor: event.type === 'prospective' ? '#f8d7da' : '#e2e3e5',
+                  border: '1px solid #ccc',
+                  borderRadius: '5px',
+                  textAlign: 'center',
+                  zIndex: event.type === 'prospective' ? 2 : 1,
+                }}
+              >
+                {event.label}
+              </div>
+            ))}
+            <div style={{ height: '200px', pointerEvents: 'none' }} />
+          </div>
+        </main>
+      </div>
+      <div style={{ width: '200px', padding: '20px', backgroundColor: '#f9f9f9', borderLeft: '1px solid #ccc' }}>
+        <h2 style={{ textAlign: 'center' }}>Place Me!</h2>
+        <Draggable
+          nodeRef={draggableRef}
+          position={draggablePosition}
+          onDrag={(e, data) => {
+            setDraggablePosition({ x: data.x, y: data.y });
+          }}
+          onStop={handleStop}
+         >
+          <div ref={draggableRef} style={{
+              width: '150px',
+              padding: '10px',
+              backgroundColor: '#d1e7dd',
+              border: '1px solid #0f5132',
+              borderRadius: '5px',
+              textAlign: 'center',
+              cursor: 'move'
+            }}>
+            {currentRandomEvent ? `Drag: ${currentRandomEvent.label}` : 'All events placed!'}
+          </div>
+        </Draggable>
+      </div>
+    </div>
+    </>
+  );
+}
