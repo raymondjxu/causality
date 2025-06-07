@@ -3,7 +3,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import Draggable from 'react-draggable';
 import CompletionModal from '../components/CompletionModal';
 import EventListSelector from '../components/EventListSelector';
+import LoadingSpinner from '../components/LoadingSpinner';
 import { useParams, useNavigate } from 'react-router-dom';
+import useLoadingDelay from '../hooks/useLoadingDelay';
 
 // Type for event objects
 /**
@@ -13,16 +15,21 @@ import { useParams, useNavigate } from 'react-router-dom';
 export default function MainTimelineApp() {
   const { eventListId } = useParams();
   const navigate = useNavigate();
+  // state hooks
   const [showCompletion, setShowCompletion] = useState(false);
   const [eventListManifest, setEventListManifest] = useState(null);
   const [selectedEventList, setSelectedEventList] = useState(/** @type {string|null} */(null));
   const [orderedEventList, setOrderedEventList] = useState(/** @type {EventObj[]} */([]));
   const [fixedEvents, setFixedEvents] = useState(/** @type {EventObj[]} */([]));
+  // fetch manifest
   useEffect(() => {
     fetch(process.env.PUBLIC_URL + '/eventListManifest.json')
       .then(res => res.json())
       .then(data => setEventListManifest(data));
   }, []);
+  // handle manifest loading with minimum delay
+  const loadingManifest = useLoadingDelay(eventListManifest === null, 200);
+
   useEffect(() => {
     if (eventListId) {
       setSelectedEventList(eventListId);
@@ -44,7 +51,8 @@ export default function MainTimelineApp() {
     }
   }, [selectedEventList]);
   const TOP_SPACER = 100;
-  const timelineRef = useRef(null);
+  const timelineRef = useRef(null); // outer container
+  const scrollableTimelineRef = useRef(null); // inner scrollable div
   const [baseY, setBaseY] = useState(TOP_SPACER);
   const [draggablePosition, setDraggablePosition] = useState({ x: 0, y: 0 });
   const draggableRef = useRef(null);
@@ -127,6 +135,15 @@ export default function MainTimelineApp() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentRandomEvent, fixedEvents, setFixedEvents, orderedEventList, timelineRef, eventSpacing, setBaseY]);
+    // show spinner until manifest arrives
+  if (loadingManifest) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <LoadingSpinner />
+      </div>
+    );
+  }
+  
   if (eventListManifest && !selectedEventList) {
     return <EventListSelector manifest={eventListManifest} onSelect={setSelectedEventList} />;
   }
@@ -136,8 +153,15 @@ export default function MainTimelineApp() {
       return fixedEvents;
     }
     const fullTimeline = [...fixedEvents];
-    const scrollTop = timelineRef.current ? timelineRef.current.scrollTop : 0;
-    const adjustedY = draggablePosition.y + scrollTop;
+    let adjustedY = 0;
+    if (scrollableTimelineRef.current && draggableRef.current) {
+      const timelineRect = scrollableTimelineRef.current.getBoundingClientRect();
+      const draggableRect = draggableRef.current.getBoundingClientRect();
+      // Use the center of the draggable for placement
+      adjustedY = draggableRect.top + draggableRect.height / 2 - timelineRect.top + scrollableTimelineRef.current.scrollTop;
+    } else {
+      adjustedY = draggablePosition.y;
+    }
     let index = fullTimeline.length;
     for (let i = 0; i < fullTimeline.length; i++) {
       const eventCenterY = TOP_SPACER + i * eventSpacing + eventSpacing / 2;
@@ -169,8 +193,15 @@ export default function MainTimelineApp() {
         return;
       }
     }
-    const scrollTop = timelineRef.current ? timelineRef.current.scrollTop : 0;
-    const adjustedY = data.y + scrollTop;
+    let adjustedY = 0;
+    if (scrollableTimelineRef.current && draggableRef.current) {
+      const timelineRect = scrollableTimelineRef.current.getBoundingClientRect();
+      const draggableRect = draggableRef.current.getBoundingClientRect();
+      // Use the center of the draggable for placement
+      adjustedY = draggableRect.top + draggableRect.height / 2 - timelineRect.top + scrollableTimelineRef.current.scrollTop;
+    } else {
+      adjustedY = data.y;
+    }
     let index = fixedEvents.length;
     for (let i = 0; i < fixedEvents.length; i++) {
       const eventCenterY = TOP_SPACER + i * eventSpacing + eventSpacing / 2;
@@ -195,8 +226,8 @@ export default function MainTimelineApp() {
     <>
       {/* Always render the modal, but only show it when showCompletion is true */}
       {showCompletion && <CompletionModal onClose={() => navigate('/')} show={showCompletion} />}
-      <div className="App" style={{ display: 'flex', flexDirection: 'row', flex: 1 }}>
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <div className="App" style={{ display: 'flex', flexDirection: 'row', flex: 1, height: '100vh', minHeight: 0 }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           <header style={{ textAlign: 'center', padding: '20px', backgroundColor: 'var(--polynesian-blue)', color: 'white', position: 'relative' }}>
             <button onClick={() => navigate('/')} aria-label="Back" style={{ position: 'absolute', left: '20px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer' }}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -208,44 +239,58 @@ export default function MainTimelineApp() {
           <main
             style={{
               position: 'relative',
-              height: '100%',
+              flex: 1,
               minHeight: 0,
-              overflow: 'auto',
-              maxHeight: 'calc(100vh - 80px)',
+              overflowY: 'hidden',
+              overflowX: 'hidden',
               borderRight: '1px solid #eee',
+              maxHeight: 'unset',
             }}
             ref={timelineRef}
           >
             <div
               style={{
                 position: 'relative',
-                minHeight: `${(fixedEvents.length + 1) * eventSpacing + 300}px`,
+                height: '100%',
+                marginBottom: '10rem',
                 width: '100%',
                 boxSizing: 'border-box',
               }}
             >
-              <div style={{ height: '100px', pointerEvents: 'none' }} />
-              {getFullTimelineIncludingProspectiveEvent().map((event, index) => (
-                <div
-                  key={index}
-                  style={{
-                    position: 'absolute',
-                    top: `${TOP_SPACER + index * eventSpacing}px`,
-                    left: 'calc(50% - 100px)',
-                    width: '200px',
-                    padding: '10px',
-                    margin: '10px 0',
-                    backgroundColor: event.type === 'prospective' ? '#f8d7da' : '#e2e3e5',
-                    border: '1px solid #ccc',
-                    borderRadius: '5px',
-                    textAlign: 'center',
-                    zIndex: event.type === 'prospective' ? 2 : 1,
-                  }}
-                >
-                  {event.label}
-                </div>
-              ))}
-              <div style={{ height: '200px', pointerEvents: 'none' }} />
+              <div
+                ref={scrollableTimelineRef}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  overflowY: 'auto',
+                }}
+              >
+                {getFullTimelineIncludingProspectiveEvent().map((event, index) => (
+                  <div
+                    key={index}
+                    style={{
+                      position: 'absolute',
+                      top: `${TOP_SPACER + index * eventSpacing}px`,
+                      left: 'calc(50% - 100px)',
+                      width: '200px',
+                      padding: '10px',
+                      margin: '10px 0',
+                      backgroundColor: event.type === 'prospective' ? '#f8d7da' : '#e2e3e5',
+                      border: '1px solid #ccc',
+                      borderRadius: '5px',
+                      textAlign: 'center',
+                      zIndex: event.type === 'prospective' ? 2 : 1,
+                    }}
+                  >
+                    {event.label}
+                  </div>
+                ))}
+                {/* Bottom spacer to allow scrolling past last event */}
+                <div style={{ position: 'absolute', top: `${TOP_SPACER + getFullTimelineIncludingProspectiveEvent().length * eventSpacing}px`, left: 0, width: '100%', height: '200px', pointerEvents: 'none' }} />
+              </div>
             </div>
           </main>
         </div>
@@ -254,11 +299,12 @@ export default function MainTimelineApp() {
           <Draggable
             nodeRef={draggableRef}
             position={draggablePosition}
+            bounds={{ top: 0 }}
             onDrag={(e, data) => {
               setDraggablePosition({ x: data.x, y: data.y });
             }}
             onStop={handleStop}
-           >
+          >
             <div ref={draggableRef} style={{
                 width: '150px',
                 padding: '10px',

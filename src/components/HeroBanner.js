@@ -15,7 +15,7 @@ export default function HeroBanner() {
       <div style={{ width: '33%', color: 'white' }}>
         <h1 style={{ fontSize: '48px', margin: 0 }}>Time for Timelines!</h1>
         <p style={{ fontSize: '18px', marginTop: '8px' }}>
-          (Something witty and inspirational that I can't think of right now)
+          (Insert something witty and inspirational that I can't think of right now)
         </p>
       </div>
       <img

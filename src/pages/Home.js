@@ -4,8 +4,10 @@ import Header from '../components/Header';
 import HeroBanner from '../components/HeroBanner';
 import EventGrid from '../components/EventGrid';
 import Footer from '../components/Footer';
+// ...existing imports...
 
 export default function Home({ eventListManifest }) {
+  // show simple loading indicator until manifest arrives
   if (!eventListManifest) return <div>Loading...</div>;
 
   return (
