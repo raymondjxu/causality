@@ -2,6 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Draggable from 'react-draggable';
 import CompletionModal from '../components/CompletionModal';
+import ErrorModal from '../components/ErrorModal';
 import EventListSelector from '../components/EventListSelector';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -13,6 +14,10 @@ import useLoadingDelay from '../hooks/useLoadingDelay';
  */
 
 export default function MainTimelineApp() {
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [pendingEvent, setPendingEvent] = useState(null);
+  const [pendingIndex, setPendingIndex] = useState(null);
   const { eventListId } = useParams();
   const navigate = useNavigate();
   // state hooks
@@ -67,6 +72,32 @@ export default function MainTimelineApp() {
     return available[Math.floor(Math.random() * available.length)];
   };
   const [currentRandomEvent, setCurrentRandomEvent] = useState(null);
+    // Handler for Try Again button in error modal
+    const handleTryAgain = () => {
+      setShowErrorModal(false);
+      setPendingEvent(null);
+      setPendingIndex(null);
+    };
+
+    // Handler for Place For Me button in error modal
+    const handlePlaceForMe = () => {
+      if (pendingEvent && pendingIndex !== null) {
+        // Find the correct index for the event in the timeline
+        const orderedLabels = orderedEventList.map(ev => ev.label);
+        let correctIdx = 0;
+        for (; correctIdx < fixedEvents.length; correctIdx++) {
+          const idxInOrdered = orderedLabels.indexOf(fixedEvents[correctIdx].label);
+          const randomIdx = orderedLabels.indexOf(pendingEvent.label);
+          if (randomIdx < idxInOrdered) break;
+        }
+        const fullTimeline = [...fixedEvents];
+        fullTimeline.splice(correctIdx, 0, pendingEvent);
+        setFixedEvents(fullTimeline);
+        setShowErrorModal(false);
+        setPendingEvent(null);
+        setPendingIndex(null);
+      }
+    };
 
   // Abstracted function to add an event to the timeline with validation
   const addEventToTimeline = (newEvent, index) => {
@@ -87,7 +118,10 @@ export default function MainTimelineApp() {
       j++;
     }
     if (!isCorrectOrder) {
-      alert('Placing this event would be out of order!');
+      setErrorMessage('Incorrect placement!');
+      setPendingEvent(newEvent);
+      setPendingIndex(index);
+      setShowErrorModal(true);
       return false;
     }
     setFixedEvents(fullTimeline);
@@ -224,6 +258,12 @@ export default function MainTimelineApp() {
   const timelineName = timelineInfo?.name || 'Untitled Timeline';
   return (
     <>
+      <ErrorModal
+        show={showErrorModal}
+        message={errorMessage}
+        onTryAgain={handleTryAgain}
+        onPlaceForMe={handlePlaceForMe}
+      />
       {/* Always render the modal, but only show it when showCompletion is true */}
       {showCompletion && <CompletionModal onClose={() => navigate('/')} show={showCompletion} />}
       <div className="App" style={{ display: 'flex', flexDirection: 'row', flex: 1, height: '100vh', minHeight: 0 }}>
