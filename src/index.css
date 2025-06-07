@@ -1,8 +1,20 @@
+/* Theme colors */
+:root {
+  --polynesian-blue: #064789ff;
+  --ucla-blue: #427aa1ff;
+  --alice-blue: #ebf2faff;
+  --fern-green: #3f784dff;
+  --brunswick-green: #283e2fff;
+  --background-light: #eee;
+  --background-medium: #888;
+  --background-dark: #333;
+}
+
+/* existing styles */
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans',
+    Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

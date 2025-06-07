@@ -189,19 +189,21 @@ export default function MainTimelineApp() {
       setBaseY(timelineRef.current ? timelineRef.current.offsetHeight / 2 - eventSpacing * (fixedEvents.length) / 2 : 0);
     }
   };
+  const timelineInfo = eventListManifest?.find(item => item.filename === selectedEventList);
+  const timelineName = timelineInfo?.name || 'Untitled Timeline';
   return (
     <>
       {/* Always render the modal, but only show it when showCompletion is true */}
       {showCompletion && <CompletionModal onClose={() => navigate('/')} show={showCompletion} />}
-      <div className="App" style={{ display: 'flex', flexDirection: 'row', height: '100vh' }}>
+      <div className="App" style={{ display: 'flex', flexDirection: 'row', flex: 1 }}>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          <header style={{ textAlign: 'center', padding: '20px', backgroundColor: '#282c34', color: 'white', position: 'relative' }}>
+          <header style={{ textAlign: 'center', padding: '20px', backgroundColor: 'var(--polynesian-blue)', color: 'white', position: 'relative' }}>
             <button onClick={() => navigate('/')} aria-label="Back" style={{ position: 'absolute', left: '20px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer' }}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="15 18 9 12 15 6" />
               </svg>
             </button>
-            <h1>Timeline of Events</h1>
+            <h1>{timelineName}</h1>
           </header>
           <main
             style={{
