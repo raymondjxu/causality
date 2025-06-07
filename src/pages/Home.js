@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 
 export default function Home({ eventListManifest }) {
   if (!eventListManifest) return <div>Loading...</div>;
+
   return (
     <div style={{ fontFamily: 'sans-serif', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <header style={{ padding: '2rem 16rem', background: '#333', color: 'white', fontSize: '24px' }}>
@@ -49,11 +50,9 @@ export default function Home({ eventListManifest }) {
                 alignItems: 'center'
               }}
             >
-              <img
-                src="https://via.placeholder.com/80"
-                alt=""
-                style={{ borderRadius: '50%', marginBottom: '12px' }}
-              />
+              <div style={{ fontSize: '48px', marginBottom: '12px' }}>
+                {item.emoji || '🎯'}
+              </div>
               <h3 style={{ margin: 0 }}>{item.name}</h3>
             </Link>
           ))}
